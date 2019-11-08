@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteMappingsManager">
+    <list>
+      <list>
+        <remote-mappings server-id="python@docker://python:3.6/python">
+          <settings>
+            <list>
+              <mapping local-root="D:/Downloads/json" remote-root="/container/json" />
+            </list>
+          </settings>
+        </remote-mappings>
+        <remote-mappings server-id="python@docker://custom-python:latest/python" />
+      </list>
+    </list>
+  </component>
+</project>
