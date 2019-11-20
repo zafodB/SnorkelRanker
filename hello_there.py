@@ -14,8 +14,8 @@ print("Hello there docker!")
 # df = pd.read_csv("/filip/json/ehealthforum/trac/training_data.txt", sep='\t',
 #                  names=['mdreply', 'votesh', 'votess', 'votest', 'ment', 'sameent', 'length', 'category', 'thread'])
 
-# df = pd.read_csv("/filip/json/ehealthforum/trac/training_data_snorkel5k.txt", sep='\t', header=0, error_bad_lines=False)
-df = pd.read_csv("/filip/json/ehealthforum/trac/training_data_snorkel_10k_full.txt", sep='\t', header=0, error_bad_lines=False)
+df = pd.read_csv("/filip/json/ehealthforum/trac/training_data_snorkel_26k_titles.txt", sep='\t', header=0,
+                 error_bad_lines=False)
 
 
 def split_by_semicolon(input_text):
@@ -35,8 +35,8 @@ df['query_annotations'] = df['query_annotations'].apply(split_by_semicolon)
 # df = df.iloc[:500,]
 # print(df.head())
 # print()
-# print(df.info())
-# print(df.describe())
+print(df.info())
+print(df.describe())
 # print()
 # print(df.shape)
 # print(df.ndim)
@@ -46,6 +46,7 @@ df['query_annotations'] = df['query_annotations'].apply(split_by_semicolon)
 ABSTAIN = -1
 NOT_RELEVANT = 0
 RELEVANT = 1
+
 
 # ABSTAIN = -1
 # NOT_RELEVANT = 0
@@ -92,8 +93,88 @@ def has_entities(x):
 
 
 @labeling_function()
-def has_entities(x):
-    return RELEVANT if len(set(x.document_annotations)) > 1 else NOT_RELEVANT
+def has_type_dsyn(x):
+    return RELEVANT if x.d_typ_dsyn > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_patf(x):
+    return RELEVANT if x.d_typ_patf > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_sosy(x):
+    return RELEVANT if x.d_typ_sosy > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_dora(x):
+    return RELEVANT if x.d_typ_dora > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_fndg(x):
+    return RELEVANT if x.d_typ_fndg > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_menp(x):
+    return RELEVANT if x.d_typ_menp > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_chem(x):
+    return RELEVANT if x.d_typ_chem > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_orch(x):
+    return RELEVANT if x.d_typ_orch > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_horm(x):
+    return RELEVANT if x.d_typ_horm > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_phsu(x):
+    return RELEVANT if x.d_typ_phsu > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_medd(x):
+    return RELEVANT if x.d_typ_medd > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_bhvr(x):
+    return RELEVANT if x.d_typ_bhvr > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_diap(x):
+    return RELEVANT if x.d_typ_diap > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_bacs(x):
+    return RELEVANT if x.d_typ_bacs > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_enzy(x):
+    return RELEVANT if x.d_typ_enzy > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_inpo(x):
+    return RELEVANT if x.d_typ_inpo > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_elii(x):
+    return RELEVANT if x.d_typ_elii > 0 else ABSTAIN
 
 
 '''
@@ -101,17 +182,27 @@ def has_entities(x):
 'typ_fndg', 'typ_menp', 'typ_chem', 'typ_orch', 'typ_horm', 'typ_phsu', 'typ_medd', 'typ_bhvr', 'typ_diap', 'typ_bacs',
  'typ_enzy', 'typ_inpo', 'typ_elii', 'document_category', 'document_thread', 'document_text', 'document_is_doctor_reply',
   'document_number_votes_h', 'document_number_votes_s', 'document_number_votes_t', 'document_user_status', 
-  'document_annotations', 'd_typ_dsyn', 'd_typ_patf', 'd_typ_sosy', 'd_typ_dora', 'd_typ_fndg', 'd_typ_menp', 
-  'd_typ_chem', 'd_typ_orch', 'd_typ_horm', 'd_typ_phsu', 'd_typ_medd', 'd_typ_bhvr', 'd_typ_diap', 'd_typ_bacs', 
-  'd_typ_enzy', 'd_typ_inpo', 'd_typ_elii', 'bm25_relevant', 'bm25_score']
+  'document_annotations', 
+  
+  
+  'd_typ_dsyn', 'd_typ_patf', 'd_typ_sosy', 'd_typ_dora', 'd_typ_fndg', 'd_typ_menp', 
+  'd_typ_chem', 'd_typ_orch', 'd_typ_horm', 'd_typ_phsu', 'd_typ_medd', 'd_typ_bhvr', 
+  'd_typ_diap', 'd_typ_bacs', 'd_typ_enzy', 'd_typ_inpo', 'd_typ_elii', 
+  
+  
+  
+  'bm25_relevant', 'bm25_score']
 '''
 
 # print(df.document_user_status.unique())
-df_train, df_valid = train_test_split(df, test_size=0.1, random_state=1234556, stratify=df.bm25_relevant)
+df_train, df_valid = train_test_split(df, test_size=0.1, random_state=8884556, stratify=df.bm25_relevant)
 Y_valid = df_valid.bm25_relevant.values
 Y_train = df_train.bm25_relevant.values
 
 lfs = [is_long, has_votes, is_doctor_reply, is_same_thread, has_entities, enity_overlap]
+# lfs = [is_long, has_votes, is_doctor_reply, is_same_thread, enity_overlap, has_type_dsyn, has_type_patf, has_type_sosy,
+#        has_type_dora, has_type_fndg, has_type_menp, has_type_chem, has_type_orch, has_type_horm, has_type_phsu,
+#        has_type_medd, has_type_bhvr, has_type_diap, has_type_bacs, has_type_enzy, has_type_inpo, has_type_elii]
 # lfs = [has_votes, is_doctor_reply, is_same_thread, enity_overlap]
 # lfs = [is_same_thread, enity_overlap, is_doctor_reply]
 
@@ -129,7 +220,6 @@ print(L_train)
 # #
 print(LFAnalysis(L=L_train, lfs=lfs).lf_summary(Y=Y_train))
 
-
 label_model = LabelModel(cardinality=2, verbose=True)
 label_model.fit(L_train=L_train, n_epochs=20000, lr=0.0001, log_freq=10, seed=81794)
 
@@ -146,6 +236,5 @@ def plot_label_frequency(L):
     plt.xlabel("Number of labels")
     plt.ylabel("Fraction of dataset")
     plt.savefig("/filip/json/ehealthforum/trac/plot.png")
-
 
 # plot_label_frequency(L_train)
