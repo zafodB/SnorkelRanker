@@ -6,34 +6,39 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-
+import numpy as np
+from sklearn.metrics import accuracy_score, precision_score, average_precision_score
 from snorkel.labeling import labeling_function, PandasLFApplier, LFAnalysis, LabelModel
 
 print("Hello there docker!")
 
+METRIC_AT = 5
+PROBABILITY_CUTOFF = 0.9
+
 # df = pd.read_csv("/filip/json/ehealthforum/trac/training_data.txt", sep='\t',
 #                  names=['mdreply', 'votesh', 'votess', 'votest', 'ment', 'sameent', 'length', 'category', 'thread'])
 
-df = pd.read_csv("/filip/json/ehealthforum/trac/training_data_snorkel_26k_titles.txt", sep='\t', header=0,
-                 error_bad_lines=False)
+df = pd.read_csv("/filip/json/ehealthforum/trac/training_data_snorkel_10k_titles.txt", sep='\t', header=0,
+                 error_bad_lines=False, encoding="ISO-8859–1")
 
 
-def split_by_semicolon(input_text):
-    if type(input_text) is str:
-        return input_text.split(sep=';')
-    else:
+def split_by_char(input_text, character=';'):
+    try:
+        return input_text.split(sep=character)
+    except AttributeError:
         return ""
 
 
-df['document_annotations'] = df['document_annotations'].apply(split_by_semicolon)
-df['query_annotations'] = df['query_annotations'].apply(split_by_semicolon)
+df['document_annotations'] = df['document_annotations'].apply(split_by_char)
+df['query_annotations'] = df['query_annotations'].apply(split_by_char)
+df.relationships_list = df.relationships_list.apply(split_by_char, args=(',',))
 
 # print(df['document_annotations'].head())
 
 # print(list(df.columns))
 # Keep just a bit of data for development for now
 # df = df.iloc[:500,]
-# print(df.head())
+print(df.relationships_list.head())
 # print()
 print(df.info())
 print(df.describe())
@@ -176,7 +181,26 @@ def has_type_inpo(x):
 def has_type_elii(x):
     return RELEVANT if x.d_typ_elii > 0 else ABSTAIN
 
+@labeling_function()
+def has_type_diap_medd_or_bhvr(x):
+    return RELEVANT if x.d_typ_diap > 0 or x.d_typ_medd > 0 or x.d_typ_bhvr > 0 else ABSTAIN
 
+@labeling_function()
+def number_relations_total(x):
+    return RELEVANT if len(x.relationships_list) > 3 else NOT_RELEVANT
+
+
+@labeling_function()
+def number_relations_distinct(x):
+    entities = set(x.relationships_list)
+    # if 'isa' in entities:
+        # entities.remove('isa')
+    return RELEVANT if len(entities) > 0 else NOT_RELEVANT
+
+
+@labeling_function()
+def has_treatment(x):
+    return RELEVANT if 'treats' in x.relationships_list or 'indicates' in x.relationships_list else ABSTAIN
 '''
 ['query_category', 'query_thread', 'query_text', 'query_annotations', 'typ_dsyn', 'typ_patf', 'typ_sosy', 'typ_dora', 
 'typ_fndg', 'typ_menp', 'typ_chem', 'typ_orch', 'typ_horm', 'typ_phsu', 'typ_medd', 'typ_bhvr', 'typ_diap', 'typ_bacs',
@@ -185,21 +209,41 @@ def has_type_elii(x):
   'document_annotations', 
   
   
-  'd_typ_dsyn', 'd_typ_patf', 'd_typ_sosy', 'd_typ_dora', 'd_typ_fndg', 'd_typ_menp', 
-  'd_typ_chem', 'd_typ_orch', 'd_typ_horm', 'd_typ_phsu', 'd_typ_medd', 'd_typ_bhvr', 
-  'd_typ_diap', 'd_typ_bacs', 'd_typ_enzy', 'd_typ_inpo', 'd_typ_elii', 
-  
+  'd_typ_dsyn', # disease or syndrome
+  'd_typ_patf', # pathological function
+  'd_typ_sosy', # sign or syndrome
+  'd_typ_dora', # daily or recreational activity 
+  'd_typ_fndg', # finding
+  *'d_typ_menp', # mental process
+  'd_typ_chem', # chemical
+  'd_typ_orch', # organic chemical
+  'd_typ_horm', # hormone
+  'd_typ_phsu', # pharmacological substance
+  'd_typ_medd', # medical device
+  *'d_typ_bhvr', # behaviour
+  *'d_typ_diap', # diagnostic procedure
+  'd_typ_bacs', # biologically active substance
+  'd_typ_enzy', # enzyme
+  'd_typ_inpo', # injury or poisoning
+  'd_typ_elii', # element, ion or isotope
   
   
   'bm25_relevant', 'bm25_score']
 '''
 
+
+def classify_my_probs(x):
+    return 1 if x < PROBABILITY_CUTOFF else 0
+
+
 # print(df.document_user_status.unique())
-df_train, df_valid = train_test_split(df, test_size=0.1, random_state=8884556, stratify=df.bm25_relevant)
+df_train, df_valid = train_test_split(df, test_size=0.1, random_state=8886, stratify=df.bm25_relevant)
 Y_valid = df_valid.bm25_relevant.values
 Y_train = df_train.bm25_relevant.values
 
-lfs = [is_long, has_votes, is_doctor_reply, is_same_thread, has_entities, enity_overlap]
+# lfs = [is_long, has_votes, is_doctor_reply, is_same_thread, has_entities, enity_overlap]
+lfs = [has_votes, is_doctor_reply, is_same_thread, has_entities, number_relations_distinct, enity_overlap]
+
 # lfs = [is_long, has_votes, is_doctor_reply, is_same_thread, enity_overlap, has_type_dsyn, has_type_patf, has_type_sosy,
 #        has_type_dora, has_type_fndg, has_type_menp, has_type_chem, has_type_orch, has_type_horm, has_type_phsu,
 #        has_type_medd, has_type_bhvr, has_type_diap, has_type_bacs, has_type_enzy, has_type_inpo, has_type_elii]
@@ -222,10 +266,31 @@ print(LFAnalysis(L=L_train, lfs=lfs).lf_summary(Y=Y_train))
 
 label_model = LabelModel(cardinality=2, verbose=True)
 label_model.fit(L_train=L_train, n_epochs=20000, lr=0.0001, log_freq=10, seed=81794)
+# label_model.fit(L_train=L_train, n_epochs=20, lr=0.0001, log_freq=10, seed=81794)
+
+valid_probabilities = label_model.predict_proba(L=L_valid)
+# validation_labels = np.fromfunction(classify_my_probs, valid_probabilities)
+validation_labels = np.fromiter((classify_my_probs(probab[1]) for probab in valid_probabilities), int)
+
+print(average_precision_score(Y_valid, np.transpose(valid_probabilities)[0]))
+# joined_vals = np.column_stack((validation_labels, Y_valid))
+joined_vals = np.array([validation_labels, Y_valid])
+joined_vals = np.vstack((joined_vals, np.zeros_like(joined_vals[0])))
+
+for index, value in enumerate(joined_vals[2]):
+    joined_vals[2, index] = index % 20
+
+joined_vals2 = joined_vals[:, joined_vals[2] < METRIC_AT]
+
+
+print("Accuracy: " + str(accuracy_score(joined_vals[0], joined_vals[1])))
+print("Precision: " + str(precision_score(joined_vals2[0], joined_vals2[1])))
+
 
 label_model_acc = label_model.score(L=L_valid, Y=Y_valid)["accuracy"]
 print(f"{'Label Model Accuracy:':<25} {label_model_acc * 100:.1f}%")
 print(label_model.get_weights())
+
 
 print('\nsup')
 
