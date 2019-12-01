@@ -9,7 +9,7 @@ df_valid = pd.read_csv("/filip/json/ehealthforum/trac/validation_df.txt", sep="\
 
 print(list(df_valid.columns))
 
-df_valid['predicted_prob'].plot.hist(bins=10)
+    df_valid['predicted_prob'].plot.hist(bins=10)
 plt.savefig("/filip/json/ehealthforum/trac/plot.png")
 
 print(df_valid.head())

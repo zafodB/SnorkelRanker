@@ -9,11 +9,12 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, average_precision_score
 from snorkel.labeling import labeling_function, PandasLFApplier, LFAnalysis, LabelModel
+import labelling_functions as lf
 
 print("Hello there docker!")
 
-METRIC_AT = 5
-PROBABILITY_CUTOFF = 0.1
+# METRIC_AT = 5
+# PROBABILITY_CUTOFF = 0.1
 
 # df = pd.read_csv("/filip/json/ehealthforum/trac/training_data.txt", sep='\t',
 #                  names=['mdreply', 'votesh', 'votess', 'votest', 'ment', 'sameent', 'length', 'category', 'thread'])
@@ -29,6 +30,7 @@ def split_by_char(input_text, character=';'):
         return ""
 
 
+
 df['document_annotations'] = df['document_annotations'].apply(split_by_char)
 df['query_annotations'] = df['query_annotations'].apply(split_by_char)
 df.relationships_list = df.relationships_list.apply(split_by_char, args=(',',))
@@ -40,185 +42,30 @@ df = df.sort_values(['query_thread', 'bm25_score'], ascending=[True, False])
 print(df.head())
 # print()
 # print(df.bm25_score.info())
-print(df.bm25_score.describe())
+# print(df.bm25_score.describe())
 # print()
 # print(df.shape)
 # print(df.ndim)
 
 # region Labeling functions
 # Define the label mappings for convenience
-ABSTAIN = -1
-NOT_RELEVANT = 0
-RELEVANT = 1
-
-
-# ABSTAIN = -1
-# NOT_RELEVANT = 0
-# WEAK = 1
-# MEDIUM = 2
-# STRONG = 3
-
-
-@labeling_function()
-def is_doctor_reply(x):
-    return RELEVANT if x.document_is_doctor_reply or x.document_user_status == "Experienced User" else NOT_RELEVANT
-
-
-@labeling_function()
-def has_votes(x):
-    total_votes = int(x.document_number_votes_h) + int(x.document_number_votes_s) + int(x.document_number_votes_t)
-    return RELEVANT if total_votes >= 1 else NOT_RELEVANT
-
-
-@labeling_function()
-def is_long(x):
-    text_length = len(x.document_text)
-    return RELEVANT if text_length > 300 else NOT_RELEVANT
-
-
-@labeling_function()
-def is_same_thread(x):
-    if x.document_thread == x.query_thread:
-        return RELEVANT
-    elif x.document_thread != x.query_thread and x.document_category == x.query_category:
-        return RELEVANT
-    else:
-        return NOT_RELEVANT
-
-
-@labeling_function()
-def enity_overlap(x):
-    return RELEVANT if len(set(x.document_annotations).intersection(set(x.query_annotations))) > 0 else NOT_RELEVANT
-
-
-@labeling_function()
-def has_entities(x):
-    return RELEVANT if len(set(x.document_annotations)) > 1 else NOT_RELEVANT
-
-
-@labeling_function()
-def has_type_dsyn(x):
-    return RELEVANT if x.d_typ_dsyn > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_patf(x):
-    return RELEVANT if x.d_typ_patf > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_sosy(x):
-    return RELEVANT if x.d_typ_sosy > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_dora(x):
-    return RELEVANT if x.d_typ_dora > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_fndg(x):
-    return RELEVANT if x.d_typ_fndg > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_menp(x):
-    return RELEVANT if x.d_typ_menp > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_chem(x):
-    return RELEVANT if x.d_typ_chem > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_orch(x):
-    return RELEVANT if x.d_typ_orch > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_horm(x):
-    return RELEVANT if x.d_typ_horm > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_phsu(x):
-    return RELEVANT if x.d_typ_phsu > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_medd(x):
-    return RELEVANT if x.d_typ_medd > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_bhvr(x):
-    return RELEVANT if x.d_typ_bhvr > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_diap(x):
-    return RELEVANT if x.d_typ_diap > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_bacs(x):
-    return RELEVANT if x.d_typ_bacs > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_enzy(x):
-    return RELEVANT if x.d_typ_enzy > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_inpo(x):
-    return RELEVANT if x.d_typ_inpo > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_elii(x):
-    return RELEVANT if x.d_typ_elii > 0 else ABSTAIN
-
-
-@labeling_function()
-def has_type_diap_medd_or_bhvr(x):
-    return RELEVANT if x.d_typ_diap > 0 or x.d_typ_medd > 0 or x.d_typ_bhvr > 0 else ABSTAIN
-
-
-@labeling_function()
-def number_relations_total(x):
-    return RELEVANT if len(x.relationships_list) > 3 else NOT_RELEVANT
-
-
-@labeling_function()
-def number_relations_distinct(x):
-    entities = set(x.relationships_list)
-    # if 'isa' in entities:
-    # entities.remove('isa')
-    return RELEVANT if len(entities) > 0 else NOT_RELEVANT
-
-
-@labeling_function()
-def has_treatment(x):
-    return RELEVANT if 'treats' in x.relationships_list or 'indicates' in x.relationships_list else ABSTAIN
 
 
 # endregion
 
 
 '''
-['query_category', 'query_thread', 'query_text', 'query_annotations', 'typ_dsyn', 'typ_patf', 'typ_sosy', 'typ_dora', 
+['query_category', 'query_thread', 'query_text', 'query_annotations', 'typ_dsyn', 'typ_patf', 'typ_sosy', 'typ_dora',
 'typ_fndg', 'typ_menp', 'typ_chem', 'typ_orch', 'typ_horm', 'typ_phsu', 'typ_medd', 'typ_bhvr', 'typ_diap', 'typ_bacs',
  'typ_enzy', 'typ_inpo', 'typ_elii', 'document_category', 'document_thread', 'document_text', 'document_is_doctor_reply',
-  'document_number_votes_h', 'document_number_votes_s', 'document_number_votes_t', 'document_user_status', 
-  'document_annotations', 
-  
-  
+  'document_number_votes_h', 'document_number_votes_s', 'document_number_votes_t', 'document_user_status',
+  'document_annotations',
+
+
   'd_typ_dsyn', # disease or syndrome
   'd_typ_patf', # pathological function
   'd_typ_sosy', # sign or syndrome
-  'd_typ_dora', # daily or recreational activity 
+  'd_typ_dora', # daily or recreational activity
   'd_typ_fndg', # finding
   *'d_typ_menp', # mental process
   'd_typ_chem', # chemical
@@ -232,8 +79,8 @@ def has_treatment(x):
   'd_typ_enzy', # enzyme
   'd_typ_inpo', # injury or poisoning
   'd_typ_elii', # element, ion or isotope
-  
-  
+
+
   'bm25_relevant', 'bm25_score']
 '''
 
@@ -296,23 +143,17 @@ def mapk(actual, predicted, k=10):
     return np.mean([apk(a, p, k) for a, p in zip(actual, predicted)])
 
 
-def classify_my_probs(x, cutoff):
-    return 1 if x > cutoff else 0
-
-
-# print(df.document_user_status.unique())
-# df_train, df_valid = train_test_split(df, test_size=0.1, random_state=8886, stratify=df.bm25_relevant)
+# df_train, df_valid = train_test_split(df, test_size=0.1, random_state=8886, stratify=df.query_thread)
 # df_train, df_valid = train_test_split(df, test_size=0.5, shuffle=False)
 # df_train, df_valid = np.array_split(df, 2)
-df_valid = df.iloc[:10000, ]
-df_train = df.iloc[10000:, ]
-
+df_valid = df.iloc[70000:, ]
+df_train = df.iloc[:70000, ]
 
 Y_valid = df_valid.bm25_relevant.values
 Y_train = df_train.bm25_relevant.values
 
-# lfs = [is_long, has_votes, is_doctor_reply, is_same_thread, has_entities, enity_overlap]
-lfs = [has_votes, is_doctor_reply, is_same_thread, has_entities, number_relations_distinct, enity_overlap]
+lfs = [lf.has_votes, lf.is_doctor_reply, lf.is_same_thread, lf.has_entities, lf.enity_overlap, lf.enity_overlap_jacc, lf.entity_type_overlap_jacc]
+# lfs = [is_same_thread, enity_overlap, entity_types, entity_type_overlap]
 
 # lfs = [is_long, has_votes, is_doctor_reply, is_same_thread, enity_overlap, has_type_dsyn, has_type_patf, has_type_sosy,
 #        has_type_dora, has_type_fndg, has_type_menp, has_type_chem, has_type_orch, has_type_horm, has_type_phsu,
@@ -325,7 +166,10 @@ applier = PandasLFApplier(lfs=lfs)
 L_train = applier.apply(df=df_train)
 L_valid = applier.apply(df=df_valid)
 
-print(LFAnalysis(L=L_train, lfs=lfs).lf_summary(Y=Y_train))
+analysis = LFAnalysis(L=L_train, lfs=lfs).lf_summary(Y=Y_train)
+print(analysis)
+print(analysis['Conflicts'])
+print(analysis['Overlaps'])
 
 label_model = LabelModel(cardinality=2, verbose=True)
 label_model.fit(L_train=L_train, n_epochs=20000, lr=0.0001, log_freq=10, seed=2345)
@@ -336,61 +180,68 @@ print("Model weights: " + str(label_model.get_weights()))
 valid_probabilities = label_model.predict_proba(L=L_valid)
 df_valid.insert(50, 'predicted_prob', valid_probabilities[:, 1])
 
-df_valid.to_csv("/filip/json/ehealthforum/trac/validation_df.txt", sep="\t", header=True)
-# df_valid['predicted_prob'].plot.hist(bins=10)
-# plt.savefig("/filip/json/ehealthforum/trac/plot.png")
+df_valid.to_csv("/filip/json/ehealthforum/trac/validation_df2.txt", sep="\t", header=True)
+# df_valid = pd.read_csv("/filip/json/ehealthforum/trac/validation_df.txt", sep="\t")
+
+#
+METRIC_AT = 5
 
 
-for cutoff in range(1, 10):
-    PROBABILITY_CUTOFF = (cutoff / 10)
-    validation_labels = np.fromiter((classify_my_probs(probab[1], PROBABILITY_CUTOFF) for probab in valid_probabilities), int)
+# PROBABILITY_CUTOFF = 0.1
 
-    if 'predicted_label' in df_valid.columns:
-        df_valid = df_valid.drop(columns=['predicted_label'])
-    df_valid.insert(51, 'predicted_label', validation_labels)
-    print("Unique values: " + str(df_valid['predicted_prob'].nunique()))
-
-    mapk_true = (df_valid.sort_values(['query_thread', 'bm25_score'], ascending=[True, False])
-                 .groupby('query_thread')
-                 .head(10)
-                 .groupby('query_thread')['document_text']
-                 .apply(list)
-                 .tolist())
-
-    mapk_predicted = (df_valid.sort_values(['query_thread', 'predicted_prob'], ascending=[True, False])
-                      .groupby('query_thread')
-                      .head(10)
-                      .groupby('query_thread')['document_text']
-                      .apply(list)
-                      .tolist())
-
-    df_valid_reduced = df_valid.sort_values(['query_thread', 'predicted_prob'], ascending=[True, False]).groupby(
-        'query_text').head(METRIC_AT)
-
-    print("\nCutoff value (labelled True if above): " + str(PROBABILITY_CUTOFF) + '\nMetrics@: ' + str(METRIC_AT) + '\n')
-
-    # print(average_precision_score(Y_valid, np.transpose(valid_probabilities)[1]))
-
-    print("Number of True relevant: " + str(df_valid_reduced[df_valid_reduced.bm25_relevant == 1].count()['bm25_relevant']))
-    print("Number of Predicted relevant: " + str(
-        df_valid_reduced[df_valid_reduced.predicted_label == 1].count()['predicted_label']) + '\n')
-
-    print("Accuracy: " + str(accuracy_score(df_valid_reduced.bm25_relevant, df_valid_reduced.predicted_label)))
-    print("Precision: " + str(precision_score(df_valid_reduced.bm25_relevant, df_valid_reduced.predicted_label)))
-    print("MAP@"+str(METRIC_AT) + ': ' + str(mapk(mapk_true, mapk_predicted, METRIC_AT)))
-
-# label_model_acc = label_model.score(L=L_valid, Y=Y_valid)["accuracy"]
-# print(f"{'Label Model Accuracy:':<25} {label_model_acc * 100:.1f}%")
+#
+#
+def compute_precision_at_k(l, k):
+    l = l[:k]
+    return sum(l) / k
 
 
+# for cutoff in range(1, 10):
+
+# PROBABILITY_CUTOFF = (cutoff / 10)
+PROBABILITY_CUTOFF = 0.5
+
+df_valid['predicted_label'] = df_valid['predicted_prob'] >= PROBABILITY_CUTOFF
+
+mapk_true = (df_valid.sort_values(['query_thread', 'bm25_score'], ascending=[True, False])
+             .groupby('query_thread')
+             .head(10)
+             .groupby('query_thread')['document_text']
+             .apply(list)
+             .tolist())
+
+mapk_predicted = (df_valid.sort_values(['query_thread', 'predicted_prob'], ascending=[True, False])
+                  .groupby('query_thread')
+                  .head(10)
+                  .groupby('query_thread')['document_text']
+                  .apply(list)
+                  .tolist())
+
+print("\nCutoff value (labelled True if above): " + str(PROBABILITY_CUTOFF) + '\nMetrics@: ' + str(METRIC_AT) + '\n')
+
+print("Number of True relevant: " + str(df_valid[df_valid.bm25_relevant == 1].count()['bm25_relevant']))
+print("Number of Predicted relevant: " + str(
+    df_valid[df_valid.predicted_label == 1].count()['predicted_label']) + '\n')
+
+df_tru = df_valid.groupby(['query_thread']).head(10)['bm25_relevant']
+
+df_pred = df_valid.groupby(['query_thread']).head(10)['predicted_label']
+
+overall_precision = []
+
+for query, group in df_valid.groupby(['query_thread']):
+    precision = compute_precision_at_k(group['predicted_label'].head(10).tolist(), 10)
+    overall_precision.append(precision)
+
+print('Overall precision: ' + str(sum(overall_precision) / len(overall_precision)))
+print("Accuracy: " + str(accuracy_score(df_tru, df_pred)))
+# print("Precision: " + str(compute_precision_at_k(df_pred, 10)))
+print("MAP@" + str(METRIC_AT) + ': ' + str(mapk(mapk_true, mapk_predicted, METRIC_AT)))
+
+#
+label_model_acc = label_model.score(L=L_valid, Y=Y_valid)["accuracy"]
+print(f"{'Label Model Accuracy:':<25} {label_model_acc * 100:.1f}%")
+#
+#
 print('\nsup')
-
-
-# TODO  check this later
-def plot_label_frequency(L):
-    plt.hist((L != ABSTAIN).sum(axis=1), density=True, bins=range(L.shape[1]))
-    plt.xlabel("Number of labels")
-    plt.ylabel("Fraction of dataset")
-    plt.savefig("/filip/json/ehealthforum/trac/plot.png")
-
-# plot_label_frequency(L_train)
+#
