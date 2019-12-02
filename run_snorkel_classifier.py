@@ -19,7 +19,12 @@ print("Hello there docker!")
 # df = pd.read_csv("/filip/json/ehealthforum/trac/training_data.txt", sep='\t',
 #                  names=['mdreply', 'votesh', 'votess', 'votest', 'ment', 'sameent', 'length', 'category', 'thread'])
 
-df = pd.read_csv("/filip/json/ehealthforum/trac/training_data_snorkel_10k_titles.txt", sep='\t', header=0,
+# import os
+# for root, dirs, files in os.walk('/container'):
+#     for direc in dirs:
+#         print(os.path.join(root, direc))
+
+df = pd.read_csv("/container/filip/json/ehealthforum/trac/training_data_snorkel_10k_titles.txt", sep='\t', header=0,
                  error_bad_lines=True, encoding="ISO-8859–1")
 
 
