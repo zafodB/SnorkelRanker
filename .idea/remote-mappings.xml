@@ -11,6 +11,20 @@
           </settings>
         </remote-mappings>
         <remote-mappings server-id="python@docker://custom-python:latest/python" />
+        <remote-mappings server-id="python@docker://snorkel_python:latest/python3">
+          <settings>
+            <list>
+              <mapping local-root="/container/filip" remote-root="/container/filip" />
+            </list>
+          </settings>
+        </remote-mappings>
+        <remote-mappings server-id="python@docker://snorkel_python_s:latest/python3">
+          <settings>
+            <list>
+              <mapping local-root="/container/filip" remote-root="/container/filip" />
+            </list>
+          </settings>
+        </remote-mappings>
       </list>
     </list>
   </component>

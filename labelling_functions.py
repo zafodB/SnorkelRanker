@@ -55,67 +55,7 @@ RELEVANT = 1
 # MEDIUM = 2
 # STRONG = 3
 
-
-@labeling_function()
-def is_doctor_reply(x):
-    return RELEVANT if x.document_is_doctor_reply or x.document_user_status == "Experienced User" else NOT_RELEVANT
-
-
-@labeling_function()
-def has_votes(x):
-    total_votes = int(x.document_number_votes_h) + int(x.document_number_votes_s) + int(x.document_number_votes_t)
-    return RELEVANT if total_votes >= 1 else NOT_RELEVANT
-
-
-@labeling_function()
-def is_long(x):
-    text_length = len(x.document_text)
-    return RELEVANT if text_length < 1400 else ABSTAIN
-
-
-@labeling_function()
-def is_same_thread(x):
-    if x.document_thread == x.query_thread:
-        return RELEVANT
-    elif x.document_thread != x.query_thread and x.document_category == x.query_category:
-        return RELEVANT
-    else:
-        return NOT_RELEVANT
-
-
-@labeling_function()
-def enity_overlap(x):
-    return RELEVANT if len(set(x.document_annotations).intersection(set(x.query_annotations))) > 0 else NOT_RELEVANT
-
-
-@labeling_function()
-def enity_overlap_coeff(x):
-    document_annotations = set(x.document_annotations)
-    query_annotations = set(x.query_annotations)
-
-    smaller = document_annotations if len(document_annotations) < len(query_annotations) else query_annotations
-
-    if len(smaller) == 0:
-        return NOT_RELEVANT
-    elif len(document_annotations.intersection(query_annotations)) / len(smaller) >= 1:
-        return RELEVANT
-    else:
-        return NOT_RELEVANT
-
-
-@labeling_function()
-def enity_overlap_jacc(x):
-    document_annotations = set(x.document_annotations)
-    query_annotations = set(x.query_annotations)
-
-    if len(document_annotations.union(query_annotations)) == 0:
-        return NOT_RELEVANT
-    elif len(document_annotations.intersection(query_annotations)) / len(
-        document_annotations.union(query_annotations)) > 0.3:
-        return RELEVANT
-    else:
-        return NOT_RELEVANT
-
+#region
 
 @labeling_function()
 def has_entities(x):
@@ -206,10 +146,83 @@ def has_type_inpo(x):
 def has_type_elii(x):
     return RELEVANT if x.d_typ_elii > 0 else ABSTAIN
 
+#endregion
+
 
 @labeling_function()
 def has_type_diap_medd_or_bhvr(x):
     return RELEVANT if x.d_typ_diap > 0 or x.d_typ_medd > 0 or x.d_typ_bhvr > 0 else ABSTAIN
+
+
+@labeling_function()
+def has_type_dsyn_sosy(x):
+    return RELEVANT if x.d_typ_dsyn > 0 or x.d_typ_sosy > 0 else ABSTAIN
+
+
+@labeling_function()
+def is_doctor_reply(x):
+    return RELEVANT if x.document_is_doctor_reply or x.document_user_status == "Experienced User" else NOT_RELEVANT
+
+
+@labeling_function()
+def has_votes(x):
+    total_votes = int(x.document_number_votes_h) + int(x.document_number_votes_s) + int(x.document_number_votes_t)
+    return RELEVANT if total_votes >= 1 else NOT_RELEVANT
+
+
+@labeling_function()
+def is_long(x):
+    text_length = len(x.document_text)
+    return RELEVANT if text_length < 1400 else ABSTAIN
+
+
+@labeling_function()
+def is_same_thread(x):
+    if x.document_thread == x.query_thread:
+        return RELEVANT
+    elif x.document_thread != x.query_thread and x.document_category == x.query_category:
+        return RELEVANT
+    else:
+        return NOT_RELEVANT
+
+
+@labeling_function()
+def enity_overlap(x):
+    return RELEVANT if len(set(x.document_annotations).intersection(set(x.query_annotations))) > 0 else NOT_RELEVANT
+
+
+@labeling_function()
+def enity_overlap_coeff(x):
+    document_annotations = set(x.document_annotations)
+    query_annotations = set(x.query_annotations)
+
+    smaller = document_annotations if len(document_annotations) < len(query_annotations) else query_annotations
+
+    if len(smaller) == 0:
+        return NOT_RELEVANT
+    elif len(document_annotations.intersection(query_annotations)) / len(smaller) >= 1:
+        return RELEVANT
+    else:
+        return NOT_RELEVANT
+
+
+@labeling_function()
+def enity_overlap_jacc(x):
+    document_annotations = set(x.document_annotations)
+    query_annotations = set(x.query_annotations)
+
+    if len(document_annotations.union(query_annotations)) == 0:
+        return NOT_RELEVANT
+    elif len(document_annotations.intersection(query_annotations)) / len(
+        document_annotations.union(query_annotations)) >= 0.2:
+        return RELEVANT
+    else:
+        return NOT_RELEVANT
+
+
+@labeling_function()
+def same_author(x):
+    return NOT_RELEVANT if x.document_username == x.query_username else RELEVANT
 
 
 @labeling_function()
@@ -297,7 +310,7 @@ def entity_type_overlap_jacc(x):
 
     if len(doc_entities.union(query_entities)) == 0:
         return NOT_RELEVANT
-    elif len(doc_entities.intersection(query_entities)) / (len(doc_entities.union(query_entities))) > 0.6:
+    elif len(doc_entities.intersection(query_entities)) / (len(doc_entities.union(query_entities))) > 0.1:
         return RELEVANT
     else:
         return NOT_RELEVANT
