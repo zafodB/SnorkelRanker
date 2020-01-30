@@ -1,6 +1,8 @@
-'''
+"""
  * Created by filip on 29/11/2019
-'''
+
+ Used and considered labelling functions. See internship report (PDF) for description of each function.
+"""
 
 from snorkel.labeling import labeling_function
 

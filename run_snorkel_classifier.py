@@ -1,6 +1,10 @@
-'''
+"""
  * Created by filip on 07/11/2019
-'''
+
+ Working file, don't use. Use instead:
+ * train_snorkel.py for training the snorkel model
+ * label_data_snorkel.py for labelling data with a trained model
+"""
 
 import os
 import pandas as pd

@@ -1,6 +1,9 @@
-'''
+"""
  * Created by filip on 07/11/2019
-'''
+
+ Train Snorkel classifier. Uses supplied pairs of queries documents, roughly balanced to contain the same amount
+ of relevant (according to BM25) and nonrelevant (according to BM25) pais. Saves the trained model into a file.
+"""
 
 import os
 import pandas as pd
@@ -13,11 +16,10 @@ from sklearn.metrics import accuracy_score, precision_score, average_precision_s
 from snorkel.labeling import labeling_function, PandasLFApplier, LFAnalysis, LabelModel
 import labelling_functions as lf
 
-print("Hello there docker!")
-
 
 df = pd.read_csv("/container/filip/json/ehealthforum/trac/training_data_snorkel_ehf_100k_titles.txt", sep='\t', header=0,
                  error_bad_lines=True, encoding="ISO-8859–1")
+
 
 def split_by_char(input_text, character=';'):
     try:
@@ -69,13 +71,7 @@ print(df.head())
 
 df_train = df
 
-# df_valid = df.iloc[3000:, ]
-# df_train = df.iloc[:3000, ]
-
 Y_train = df_train.bm25_relevant.values
-
-# Try with removing entity types and diap medd bhvr
-
 
 lfs = [lf.has_type_diap_medd_or_bhvr, lf.is_doctor_reply, lf.has_votes, lf.enity_overlap_jacc, lf.same_author,
        lf.number_relations_total, lf.entity_types]
@@ -86,10 +82,6 @@ L_train = applier.apply(df=df_train)
 
 label_model = LabelModel(cardinality=2, verbose=True)
 label_model.fit(L_train=L_train, n_epochs=20000, lr=0.0001, log_freq=10, seed=2345)
-label_model.save("/container/filip/json/ehealthforum/trac/trained_model_ehf.lbm")
-# label_model.fit(L_train=L_train, n_epochs=20, lr=0.0001, log_freq=10, seed=81794)
+label_model.save("trained_model_ehf.lbm")
 
-# label_model = LabelModel(cardinality=2, verbose=True)
-# label_model.load("/container/filip/json/healthboards/trac/trained_model_hb.lbm")
-
-print('\nsup')
+print("Finished,")
